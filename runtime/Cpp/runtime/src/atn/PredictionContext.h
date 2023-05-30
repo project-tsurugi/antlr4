@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <mutex>
+
 #include "Recognizer.h"
 #include "atn/ATN.h"
 #include "atn/ATNState.h"
@@ -15,8 +17,7 @@ namespace atn {
   struct PredictionContextHasher;
   struct PredictionContextComparer;
   class PredictionContextMergeCache;
-
-  typedef std::unordered_set<Ref<PredictionContext>, PredictionContextHasher, PredictionContextComparer> PredictionContextCache;
+  class PredictionContextCache;
 
   class ANTLR4CPP_PUBLIC PredictionContext {
   public:
@@ -247,6 +248,24 @@ namespace atn {
       std::unordered_map<Ref<PredictionContext>, Ref<PredictionContext>, PredictionContextHasher, PredictionContextComparer>,
       PredictionContextHasher, PredictionContextComparer> _data;
 
+  };
+
+  class ANTLR4CPP_PUBLIC PredictionContextCache {
+  public:
+    auto find(const Ref<PredictionContext>& key) {
+      std::lock_guard<std::mutex> lk{mtx_};
+      return set_.find(key);
+    }
+    auto end() noexcept {
+      std::lock_guard<std::mutex> lk{mtx_};
+      return set_.end();
+    }
+    auto insert(const Ref<PredictionContext>& elem) {
+      std::lock_guard<std::mutex> lk{mtx_};
+      return set_.insert(elem);
+    }
+    std::mutex mtx_;
+    std::unordered_set<Ref<PredictionContext>, PredictionContextHasher, PredictionContextComparer> set_;
   };
 
 } // namespace atn
